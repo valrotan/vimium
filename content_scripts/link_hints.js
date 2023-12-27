@@ -257,6 +257,20 @@ const HintCoordinator = {
       this.onExit = [];
     }
     this.linkHintsMode = new LinkHintsMode(hintDescriptors, availableModes[modeIndex]);
+
+    // Save a screenshot + hint markers for the current page.
+    const localHints = this.linkHintsMode.hintMarkers;
+    const localHintRects = localHints.map(marker => marker.localHint.rect);
+    const rects = localHintRects.map(rect => [rect.left, rect.top, rect.width, rect.height]);
+    for (let el of document.querySelectorAll('.appBanner')) el.style.visibility = 'hidden';
+    chrome.runtime.sendMessage({
+      handler: "captureScreenshot",
+      rects: rects,
+      url: window.location.href,
+    }).then((response) => {
+      for (let el of document.querySelectorAll('.appBanner')) el.style.visibility = 'visible';
+    });
+
     // Replay keydown events which we missed (but for filtered hints only).
     if (Settings.get("filterLinkHints" && this.cacheAllKeydownEvents)) {
       this.cacheAllKeydownEvents.replayKeydownEvents();
@@ -1044,6 +1058,15 @@ const LocalHints = {
     const ariaDisabled = element.getAttribute("aria-disabled");
     if (ariaDisabled && ["", "true"].includes(ariaDisabled.toLowerCase())) {
       return []; // This element should never have a link hint.
+    }
+
+    // Check that the element is visible
+    const opacity = window.getComputedStyle(element).opacity;
+    const visibility = window.getComputedStyle(element).visibility;
+    const display = window.getComputedStyle(element).display;
+    const isDisplayed = (opacity !== "0") && (visibility !== "hidden") && (display !== "none");
+    if (!isDisplayed) {
+        return []; // This element should never have a link hint.
     }
 
     // Check for AngularJS listeners on the element.

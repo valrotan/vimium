@@ -646,6 +646,25 @@ const sendRequestHandlers = {
     const completer = completers[request.completerName];
     completer.cancel();
   },
+
+  async captureScreenshot(request, sender) {
+    const tabId = sender.tab.id;
+    const tab = await chrome.tabs.get(tabId);
+    const options = {
+      format: "jpeg",
+      quality: 90,
+    };
+    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, options);
+    const imageData = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
+
+    const counter = await chrome.storage.local.get('counter').counter || 0;
+
+    chrome.storage.local.set({ counter: counter + 1 });
+    const payload = {}
+    payload[counter] = { image: imageData, rects: request.rects, url: request.url }
+    chrome.storage.local.set(payload);
+    return;
+  }
 };
 
 Utils.addChromeRuntimeOnMessageListener(
