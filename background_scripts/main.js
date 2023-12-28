@@ -657,7 +657,7 @@ const sendRequestHandlers = {
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, options);
     const imageData = dataUrl.replace(/^data:image\/(png|jpeg);base64,/, "");
 
-    const counter = await chrome.storage.local.get('counter').counter || 0;
+    const counter = (await chrome.storage.local.get('counter')).counter || 0;
 
     chrome.storage.local.set({ counter: counter + 1 });
     const payload = {}
